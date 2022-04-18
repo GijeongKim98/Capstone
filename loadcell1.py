@@ -38,7 +38,18 @@ db = firestore.client()
 
 doc_ref = db.collection(u'datas').document(id_data)
 
-doc_ref_Period = doc_ref.collection(u'period')  # 빨래를 할때 얼마나 빨래하고 언제 하는지
+doc_ref_col_FA = doc_ref.collection(u'featureAnalysis')
+
+doc_ref_on_off = doc_ref_col_FA.document(u'on_off') # on_off값 가져오기
+
+doc_ref_on_off = doc_ref_col_FA.document(u'on_off') # on_off값 가져오기
+
+doc_ref_on_off = doc_ref_col_FA.document(u'on_off') # on_off값 가져오기
+
+doc_ref_on_off = doc_ref_col_FA.document(u'on_off') # on_off값 가져오기
+
+
+ # 빨래를 할때 얼마나 빨래하고 언제 하는지
 
 
 # 라즈베리파이 초음파센서 작동시키기

@@ -13,9 +13,7 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 
-# 오늘 날짜 불러오기
 
-date = datetime.today()
 
 # firebase document name 불러오기
 while True:
@@ -38,7 +36,8 @@ db = firestore.client()
 
 doc_ref = db.collection(u'datas').document(id_data)
 
-doc_ref_Period = doc_ref.collection(u'period')  # 빨래를 할때 얼마나 빨래하고 언제 하는지
+doc_ref_FA_p2 = doc_ref.collection(u'featureAnalysis').document(u'period2')
+
 
 
 # 라즈베리파이 초음파센서 작동시키기
@@ -76,7 +75,7 @@ try:
         if distance < 40:
 
             # loadcell 센서 동작 serial 통신
-
+            '''
             while True:
 
                 # 다른 python 파일에서 data값을 올리고 있는 경우 동작x
@@ -86,7 +85,7 @@ try:
                     continue
                 else:
                     break
-                
+            ''' 
             # 실제 serial 통신 동작 부분
 
             if __name__ == '__main__':
@@ -100,33 +99,28 @@ try:
                         
                         if float(line) == -1000:
                             continue
-                        
-                        
-                            
+
                         data = float(line)
 
                         break
-                            
 
                 # data < 0 인 순간 => 빨래하는 날이므로 빨래를 언제, 얼마나 하는지 데이터 저장
 
-                if data <= 0 :
+                if data <= 0:
+                    # 오늘 날짜 불러오기
 
-
-                    # doc_ref_Period에 document에 '오늘 날짜' 가 있는지 확인 없으면 set()
-
-                    if date.strftime("%Y%m%d") not in doc_ref_Period.get():
-
-                        doc_ref_Period.document(date.strftime("%Y%m%d")).set()
+                    date = datetime.today()
 
                     # 업데이트 되기전 빨래통의 무게를 빨래양으로 db에 업데이트
 
-                    pre_weight = doc_ref.get()['weight2']
-                    doc_ref_Period.document(date.strftime("%Y%m%d")).update({'laun_weight2' : pre_weight})
+                    pre_weight = doc_ref.get().to_dict()['weight2']
+                    doc_ref_FA_p2.update({
+                        date.strftime('%Y%m%d') : pre_weight
+                    })
 
                     # 빨래양과 주기 가져오기
 
-                    dic_ideal = doc_ref_Period.get()
+                    dic_ideal = doc_ref_FA_p2.get().to_dict()
                     
                     count = 0  # 빨래 한 날의 수
                     sum_d = 0  # 날짜의 차이를 더함
@@ -134,24 +128,20 @@ try:
 
                     # for문 :  collection(= Period)에 저장된 document(날짜) 반복
 
-                    for i in dic_ideal:
+                    for day, weight in dic_ideal.items():
 
-                        if i['laun_weight2']:  # laun_weight2이 있는 경우 실행
+                        if count > 0:
+                            day1 = datetime.strptime(day, "%Y%m%d")  # string -> datetime
+                            day2 = datetime.strptime(pre_day, "%Y%m%d")  # string -> datetime
 
-                            if count == 0:     # 처음 동작시 이전 빨래한날 초기화
-                                pre_day = i
+                            delta_day = (day1 - day2).days   # 주기 계산
 
-                            else:
-                                day1 = datetime.strptime(i, "%Y%m%d")  # string -> datetime
-                                day2 = datetime.strptime(pre_day, "%Y%m%d")  # string -> datetime
+                            sum_d += delta_day  # 주기 더해주기
 
-                                delta_day = (day1 - day2).days   # 주기 계산
-                                pre_day = i    # 이전 빨래한날 초기화
+                        pre_day = day  # 이전 빨래한날 초기화
 
-                                sum_d += delta_day  # 주기 더해주기
-
-                            sum_w += float(i['laun_weight2'])  # 빨래 무게 더해주기
-                            count += 1
+                        sum_w += weight  # 빨래 무게 더해주기
+                        count += 1
                     
                     mean_w = sum_w / count  # 사용자의 평균 빨래양
 
@@ -170,9 +160,8 @@ try:
                 # weight2값 업데이트, on_off 업데이트
 
                 doc_ref.update({
-                    u'weight2' : data,
-                    u'on_off2' : 0
+                    u'weight2' : data
                     })
 
-except :
+except:
     GPIO.cleanup()
